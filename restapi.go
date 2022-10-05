@@ -67,21 +67,28 @@ func Regist(db *gorm.DB) echo.HandlerFunc {
 
 func Login(db *gorm.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		email := c.Param("email")
-		//	password := c.Param("password")
+		// email := c.Param("email")
+		//var Password string
 		var resQry User
+		if err := c.Bind(&resQry); err != nil {
+			log.Error(err.Error())
+			c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"message": "cant proces data",
+			})
+		}
+		//check password
+		// err := bcrypt.CompareHashAndPassword([]byte(resQry.Password), []byte(Password))
+		// if err != nil {
+		// 	return err
+		// }
 
 		//check email
-		if err := db.First(&resQry, "email = ?", email).Error; err != nil {
+		if err := db.First(&resQry, "email = ? and hp =?", resQry.Email, resQry.Hp).Error; err != nil {
+			log.Error(err)
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"message": "wrong email ",
 			})
 		}
-		//check password
-		// err := bcrypt.CompareHashAndPassword([]byte(resQry.Password), []byte(password))
-		// if err != nil {
-		// 	return err
-		// }
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"message": "success get specific data",
@@ -154,17 +161,16 @@ func migrate(db *gorm.DB) {
 }
 
 func main() {
-
 	e := echo.New()
 	db := connectDBGorm()
 	migrate(db)
 	e.Use(middleware.Logger())
 
 	e.POST("/users", Regist(db))
-	e.GET("/users/:email", Login(db))
+	e.POST("/login", Login(db))
 	e.GET("/vendors", GetAllvendor(db))
 	e.GET("/vendors/:expedisi", GetDataVendor(db))
 	e.POST("/vendors", AddVendor(db))
-	e.Start(":8000")
+	e.Start(":8000") //echo mulai
 
 }
